@@ -1,0 +1,1594 @@
+{
+  "info": {
+    "_postman_id": "8fa01021-1798-4518-ae36-9d085b4698cd",
+    "name": "NYC Historical Vital Records (NYC Open Data)",
+    "description": "Postman collection for the **NYC Historical Vital Records** indexes published by the NYC Department of Records and Information Services (DORIS) / Municipal Archives on NYC Open Data (Socrata SODA API):\n\n| Dataset | ID | Years | Rows |\n|---|---|---|---|\n| Births | 5gq7-rgmv | 1855\u20131909 | ~2.6M |\n| Deaths | 797j-9xvg | 1862\u20131948 | ~3.7M |\n| Marriages | j62e-7maa | 1866\u20131937 | ~5.3M |\n| Marriage licenses | d8dr-nyhw | 1908\u20131949 | ~1.3M |\n\nNo key required. An optional Socrata app token (`app_token`, sent as `X-App-Token`) raises rate limits.\n\n**Set variables:** `last_name`, `first_name` (prefix, optional), `borough` (MANHATTAN, KINGS, BRONX, QUEENS, RICHMOND or blank), `year_from`, `year_to`, `limit`.\n\nEvery search shows a table in the **Visualize** tab with a *view* link that opens the certificate on https://a860-historicalvitalrecords.nyc.gov.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "noauth"
+  },
+  "item": [
+    {
+      "name": "Births (1855\u20131909) \u00b7 5gq7-rgmv",
+      "item": [
+        {
+          "name": "Search by name (case-insensitive)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-App-Token",
+                "value": "{{app_token}}",
+                "description": "Optional Socrata app token (raises rate limits). Leave blank or disable.",
+                "disabled": true
+              }
+            ],
+            "url": {
+              "raw": "{{nyc_baseUrl}}/resource/5gq7-rgmv.json?$where=upper(last_name)=upper('{{last_name}}') AND upper(first_name) like upper('{{first_name}}%') AND upper(county) like upper('{{borough}}%') AND year between '{{year_from}}' and '{{year_to}}'&$order=year, last_name, first_name&$limit={{limit}}",
+              "host": [
+                "{{nyc_baseUrl}}"
+              ],
+              "path": [
+                "resource",
+                "5gq7-rgmv.json"
+              ],
+              "query": [
+                {
+                  "key": "$where",
+                  "value": "upper(last_name)=upper('{{last_name}}') AND upper(first_name) like upper('{{first_name}}%') AND upper(county) like upper('{{borough}}%') AND year between '{{year_from}}' and '{{year_to}}'",
+                  "description": "Exact surname; first name = prefix; borough optional (blank = all); year range inclusive",
+                  "disabled": false
+                },
+                {
+                  "key": "$order",
+                  "value": "year, last_name, first_name",
+                  "description": "",
+                  "disabled": false
+                },
+                {
+                  "key": "$limit",
+                  "value": "{{limit}}",
+                  "description": "",
+                  "disabled": false
+                }
+              ]
+            },
+            "description": "Exact last name, first-name prefix, borough and year range. Leave `first_name` / `borough` blank to widen."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Show results as a table with a link to the certificate on the Municipal Archives site.",
+                  "const rows = pm.response.json();",
+                  "pm.test(\"Status 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Returned rows\", () => pm.expect(rows).to.be.an(\"array\"));",
+                  "const type = \"birth\";",
+                  "const out = rows.map(r => ({...r,",
+                  "  view: type && r.number ? `https://a860-historicalvitalrecords.nyc.gov/browse-all?certificate_type=${type}&number=${r.number}&county=${(r.county||\"\").toLowerCase()}&year=${r.year}` : \"\"",
+                  "}));",
+                  "if (out[0]) { [\"number\",\"year\",\"county\"].forEach(k => out[0][k] && pm.collectionVariables.set(\"last_\"+k, k===\"county\" ? out[0][k].toLowerCase() : out[0][k])); if (type) pm.collectionVariables.set(\"cert_type\", type); }",
+                  "const cols = out.length ? Object.keys(out[0]).filter(k => k !== \"view\") : [];",
+                  "console.log(`${out.length} rows`);",
+                  "pm.visualizer.set(`<style>body{font:13px system-ui}td,th{border:1px solid #ccc;padding:3px 6px}</style>",
+                  "<p><b>{{out.length}}</b> rows (max = <code>$limit</code>). First row's number/year/county saved to <code>last_*</code> variables.</p>",
+                  "<table><tr>{{#each cols}}<th>{{this}}</th>{{/each}}{{#if type}}<th>certificate</th>{{/if}}</tr>",
+                  "{{#each out}}<tr>{{#each ../cols}}<td>{{lookup ../this this}}</td>{{/each}}{{#if ../type}}<td><a href=\"{{view}}\" target=\"_blank\">view</a></td>{{/if}}</tr>{{/each}}</table>`, { out, cols, type });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Sounds-like search (Soundex)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-App-Token",
+                "value": "{{app_token}}",
+                "description": "Optional Socrata app token (raises rate limits). Leave blank or disable.",
+                "disabled": true
+              }
+            ],
+            "url": {
+              "raw": "{{nyc_baseUrl}}/resource/5gq7-rgmv.json?$where=soundex='{{soundex}}' AND upper(county) like upper('{{borough}}%') AND year between '{{year_from}}' and '{{year_to}}'&$order=last_name, year&$limit={{limit}}",
+              "host": [
+                "{{nyc_baseUrl}}"
+              ],
+              "path": [
+                "resource",
+                "5gq7-rgmv.json"
+              ],
+              "query": [
+                {
+                  "key": "$where",
+                  "value": "soundex='{{soundex}}' AND upper(county) like upper('{{borough}}%') AND year between '{{year_from}}' and '{{year_to}}'",
+                  "description": "Soundex computed from {{last_name}} by the pre-request script",
+                  "disabled": false
+                },
+                {
+                  "key": "$order",
+                  "value": "last_name, year",
+                  "description": "",
+                  "disabled": false
+                },
+                {
+                  "key": "$limit",
+                  "value": "{{limit}}",
+                  "description": "",
+                  "disabled": false
+                }
+              ]
+            },
+            "description": "Catches spelling variants (Glassheim / Glasheim / Glasshym \u2026). The pre-request script computes `{{soundex}}` from `{{last_name}}`."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Compute American Soundex of {{last_name}} into {{soundex}} (matches the dataset's soundex column).",
+                  "function soundex(s){",
+                  "  s=(s||\"\").toUpperCase().replace(/[^A-Z]/g,\"\"); if(!s) return \"\";",
+                  "  const code={B:1,F:1,P:1,V:1,C:2,G:2,J:2,K:2,Q:2,S:2,X:2,Z:2,D:3,T:3,L:4,M:5,N:5,R:6};",
+                  "  let out=s[0], prev=code[s[0]]||0;",
+                  "  for(let i=1;i<s.length && out.length<4;i++){",
+                  "    const ch=s[i], c=code[ch]||0;",
+                  "    if(c && c!==prev) out+=c;",
+                  "    if(ch!==\"H\" && ch!==\"W\") prev=c;   // H/W don't separate equal codes",
+                  "  }",
+                  "  return (out+\"000\").slice(0,4);",
+                  "}",
+                  "const sx = soundex(pm.collectionVariables.get(\"last_name\"));",
+                  "pm.collectionVariables.set(\"soundex\", sx);",
+                  "console.log(\"Soundex:\", sx);"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Show results as a table with a link to the certificate on the Municipal Archives site.",
+                  "const rows = pm.response.json();",
+                  "pm.test(\"Status 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Returned rows\", () => pm.expect(rows).to.be.an(\"array\"));",
+                  "const type = \"birth\";",
+                  "const out = rows.map(r => ({...r,",
+                  "  view: type && r.number ? `https://a860-historicalvitalrecords.nyc.gov/browse-all?certificate_type=${type}&number=${r.number}&county=${(r.county||\"\").toLowerCase()}&year=${r.year}` : \"\"",
+                  "}));",
+                  "if (out[0]) { [\"number\",\"year\",\"county\"].forEach(k => out[0][k] && pm.collectionVariables.set(\"last_\"+k, k===\"county\" ? out[0][k].toLowerCase() : out[0][k])); if (type) pm.collectionVariables.set(\"cert_type\", type); }",
+                  "const cols = out.length ? Object.keys(out[0]).filter(k => k !== \"view\") : [];",
+                  "console.log(`${out.length} rows`);",
+                  "pm.visualizer.set(`<style>body{font:13px system-ui}td,th{border:1px solid #ccc;padding:3px 6px}</style>",
+                  "<p><b>{{out.length}}</b> rows (max = <code>$limit</code>). First row's number/year/county saved to <code>last_*</code> variables.</p>",
+                  "<table><tr>{{#each cols}}<th>{{this}}</th>{{/each}}{{#if type}}<th>certificate</th>{{/if}}</tr>",
+                  "{{#each out}}<tr>{{#each ../cols}}<td>{{lookup ../this this}}</td>{{/each}}{{#if ../type}}<td><a href=\"{{view}}\" target=\"_blank\">view</a></td>{{/if}}</tr>{{/each}}</table>`, { out, cols, type });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Look up by certificate number",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-App-Token",
+                "value": "{{app_token}}",
+                "description": "Optional Socrata app token (raises rate limits). Leave blank or disable.",
+                "disabled": true
+              }
+            ],
+            "url": {
+              "raw": "{{nyc_baseUrl}}/resource/5gq7-rgmv.json?$where=number='{{cert_number}}' AND year='{{cert_year}}' AND upper(county)=upper('{{borough}}')",
+              "host": [
+                "{{nyc_baseUrl}}"
+              ],
+              "path": [
+                "resource",
+                "5gq7-rgmv.json"
+              ],
+              "query": [
+                {
+                  "key": "$where",
+                  "value": "number='{{cert_number}}' AND year='{{cert_year}}' AND upper(county)=upper('{{borough}}')",
+                  "description": "Certificate numbers restart each year in each borough, so borough + year are required",
+                  "disabled": false
+                }
+              ]
+            },
+            "description": "Exact certificate lookup."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Show results as a table with a link to the certificate on the Municipal Archives site.",
+                  "const rows = pm.response.json();",
+                  "pm.test(\"Status 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Returned rows\", () => pm.expect(rows).to.be.an(\"array\"));",
+                  "const type = \"birth\";",
+                  "const out = rows.map(r => ({...r,",
+                  "  view: type && r.number ? `https://a860-historicalvitalrecords.nyc.gov/browse-all?certificate_type=${type}&number=${r.number}&county=${(r.county||\"\").toLowerCase()}&year=${r.year}` : \"\"",
+                  "}));",
+                  "if (out[0]) { [\"number\",\"year\",\"county\"].forEach(k => out[0][k] && pm.collectionVariables.set(\"last_\"+k, k===\"county\" ? out[0][k].toLowerCase() : out[0][k])); if (type) pm.collectionVariables.set(\"cert_type\", type); }",
+                  "const cols = out.length ? Object.keys(out[0]).filter(k => k !== \"view\") : [];",
+                  "console.log(`${out.length} rows`);",
+                  "pm.visualizer.set(`<style>body{font:13px system-ui}td,th{border:1px solid #ccc;padding:3px 6px}</style>",
+                  "<p><b>{{out.length}}</b> rows (max = <code>$limit</code>). First row's number/year/county saved to <code>last_*</code> variables.</p>",
+                  "<table><tr>{{#each cols}}<th>{{this}}</th>{{/each}}{{#if type}}<th>certificate</th>{{/if}}</tr>",
+                  "{{#each out}}<tr>{{#each ../cols}}<td>{{lookup ../this this}}</td>{{/each}}{{#if ../type}}<td><a href=\"{{view}}\" target=\"_blank\">view</a></td>{{/if}}</tr>{{/each}}</table>`, { out, cols, type });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Full-text search",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-App-Token",
+                "value": "{{app_token}}",
+                "description": "Optional Socrata app token (raises rate limits). Leave blank or disable.",
+                "disabled": true
+              }
+            ],
+            "url": {
+              "raw": "{{nyc_baseUrl}}/resource/5gq7-rgmv.json?$q={{last_name}}&$limit={{limit}}",
+              "host": [
+                "{{nyc_baseUrl}}"
+              ],
+              "path": [
+                "resource",
+                "5gq7-rgmv.json"
+              ],
+              "query": [
+                {
+                  "key": "$q",
+                  "value": "{{last_name}}",
+                  "description": "Searches all text columns",
+                  "disabled": false
+                },
+                {
+                  "key": "$limit",
+                  "value": "{{limit}}",
+                  "description": "",
+                  "disabled": false
+                }
+              ]
+            },
+            "description": "Socrata full-text search across all columns."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Show results as a table with a link to the certificate on the Municipal Archives site.",
+                  "const rows = pm.response.json();",
+                  "pm.test(\"Status 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Returned rows\", () => pm.expect(rows).to.be.an(\"array\"));",
+                  "const type = \"birth\";",
+                  "const out = rows.map(r => ({...r,",
+                  "  view: type && r.number ? `https://a860-historicalvitalrecords.nyc.gov/browse-all?certificate_type=${type}&number=${r.number}&county=${(r.county||\"\").toLowerCase()}&year=${r.year}` : \"\"",
+                  "}));",
+                  "if (out[0]) { [\"number\",\"year\",\"county\"].forEach(k => out[0][k] && pm.collectionVariables.set(\"last_\"+k, k===\"county\" ? out[0][k].toLowerCase() : out[0][k])); if (type) pm.collectionVariables.set(\"cert_type\", type); }",
+                  "const cols = out.length ? Object.keys(out[0]).filter(k => k !== \"view\") : [];",
+                  "console.log(`${out.length} rows`);",
+                  "pm.visualizer.set(`<style>body{font:13px system-ui}td,th{border:1px solid #ccc;padding:3px 6px}</style>",
+                  "<p><b>{{out.length}}</b> rows (max = <code>$limit</code>). First row's number/year/county saved to <code>last_*</code> variables.</p>",
+                  "<table><tr>{{#each cols}}<th>{{this}}</th>{{/each}}{{#if type}}<th>certificate</th>{{/if}}</tr>",
+                  "{{#each out}}<tr>{{#each ../cols}}<td>{{lookup ../this this}}</td>{{/each}}{{#if ../type}}<td><a href=\"{{view}}\" target=\"_blank\">view</a></td>{{/if}}</tr>{{/each}}</table>`, { out, cols, type });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Count by year for a surname",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-App-Token",
+                "value": "{{app_token}}",
+                "description": "Optional Socrata app token (raises rate limits). Leave blank or disable.",
+                "disabled": true
+              }
+            ],
+            "url": {
+              "raw": "{{nyc_baseUrl}}/resource/5gq7-rgmv.json?$select=year, count(*) AS records&$where=upper(last_name)=upper('{{last_name}}')&$group=year&$order=year",
+              "host": [
+                "{{nyc_baseUrl}}"
+              ],
+              "path": [
+                "resource",
+                "5gq7-rgmv.json"
+              ],
+              "query": [
+                {
+                  "key": "$select",
+                  "value": "year, count(*) AS records",
+                  "description": "",
+                  "disabled": false
+                },
+                {
+                  "key": "$where",
+                  "value": "upper(last_name)=upper('{{last_name}}')",
+                  "description": "",
+                  "disabled": false
+                },
+                {
+                  "key": "$group",
+                  "value": "year",
+                  "description": "",
+                  "disabled": false
+                },
+                {
+                  "key": "$order",
+                  "value": "year",
+                  "description": "",
+                  "disabled": false
+                }
+              ]
+            },
+            "description": "Aggregate: how many records per year for the surname."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Show results as a table with a link to the certificate on the Municipal Archives site.",
+                  "const rows = pm.response.json();",
+                  "pm.test(\"Status 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Returned rows\", () => pm.expect(rows).to.be.an(\"array\"));",
+                  "const type = \"\";",
+                  "const out = rows.map(r => ({...r,",
+                  "  view: type && r.number ? `https://a860-historicalvitalrecords.nyc.gov/browse-all?certificate_type=${type}&number=${r.number}&county=${(r.county||\"\").toLowerCase()}&year=${r.year}` : \"\"",
+                  "}));",
+                  "if (out[0]) { [\"number\",\"year\",\"county\"].forEach(k => out[0][k] && pm.collectionVariables.set(\"last_\"+k, k===\"county\" ? out[0][k].toLowerCase() : out[0][k])); if (type) pm.collectionVariables.set(\"cert_type\", type); }",
+                  "const cols = out.length ? Object.keys(out[0]).filter(k => k !== \"view\") : [];",
+                  "console.log(`${out.length} rows`);",
+                  "pm.visualizer.set(`<style>body{font:13px system-ui}td,th{border:1px solid #ccc;padding:3px 6px}</style>",
+                  "<p><b>{{out.length}}</b> rows (max = <code>$limit</code>). First row's number/year/county saved to <code>last_*</code> variables.</p>",
+                  "<table><tr>{{#each cols}}<th>{{this}}</th>{{/each}}{{#if type}}<th>certificate</th>{{/if}}</tr>",
+                  "{{#each out}}<tr>{{#each ../cols}}<td>{{lookup ../this this}}</td>{{/each}}{{#if ../type}}<td><a href=\"{{view}}\" target=\"_blank\">view</a></td>{{/if}}</tr>{{/each}}</table>`, { out, cols, type });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Download CSV (name search)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-App-Token",
+                "value": "{{app_token}}",
+                "description": "Optional Socrata app token (raises rate limits). Leave blank or disable.",
+                "disabled": true
+              }
+            ],
+            "url": {
+              "raw": "{{nyc_baseUrl}}/resource/5gq7-rgmv.csv?$where=upper(last_name)=upper('{{last_name}}') AND upper(first_name) like upper('{{first_name}}%') AND upper(county) like upper('{{borough}}%') AND year between '{{year_from}}' and '{{year_to}}'&$limit=50000",
+              "host": [
+                "{{nyc_baseUrl}}"
+              ],
+              "path": [
+                "resource",
+                "5gq7-rgmv.csv"
+              ],
+              "query": [
+                {
+                  "key": "$where",
+                  "value": "upper(last_name)=upper('{{last_name}}') AND upper(first_name) like upper('{{first_name}}%') AND upper(county) like upper('{{borough}}%') AND year between '{{year_from}}' and '{{year_to}}'",
+                  "description": "",
+                  "disabled": false
+                },
+                {
+                  "key": "$limit",
+                  "value": "50000",
+                  "description": "",
+                  "disabled": false
+                }
+              ]
+            },
+            "description": "Same as name search, as CSV. In Postman use *Send and Download*."
+          },
+          "response": []
+        }
+      ],
+      "description": "Index to digitized birth certificates, all 5 boroughs. ~2.6M rows. Fields: first_name, last_name, soundex, county, number, year, month, day.\n\nDataset: https://data.cityofnewyork.us/d/5gq7-rgmv"
+    },
+    {
+      "name": "Deaths (1862\u20131948) \u00b7 797j-9xvg",
+      "item": [
+        {
+          "name": "Search by name (case-insensitive)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-App-Token",
+                "value": "{{app_token}}",
+                "description": "Optional Socrata app token (raises rate limits). Leave blank or disable.",
+                "disabled": true
+              }
+            ],
+            "url": {
+              "raw": "{{nyc_baseUrl}}/resource/797j-9xvg.json?$where=upper(last_name)=upper('{{last_name}}') AND upper(first_name) like upper('{{first_name}}%') AND upper(county) like upper('{{borough}}%') AND year between '{{year_from}}' and '{{year_to}}'&$order=year, last_name, first_name&$limit={{limit}}",
+              "host": [
+                "{{nyc_baseUrl}}"
+              ],
+              "path": [
+                "resource",
+                "797j-9xvg.json"
+              ],
+              "query": [
+                {
+                  "key": "$where",
+                  "value": "upper(last_name)=upper('{{last_name}}') AND upper(first_name) like upper('{{first_name}}%') AND upper(county) like upper('{{borough}}%') AND year between '{{year_from}}' and '{{year_to}}'",
+                  "description": "Exact surname; first name = prefix; borough optional (blank = all); year range inclusive",
+                  "disabled": false
+                },
+                {
+                  "key": "$order",
+                  "value": "year, last_name, first_name",
+                  "description": "",
+                  "disabled": false
+                },
+                {
+                  "key": "$limit",
+                  "value": "{{limit}}",
+                  "description": "",
+                  "disabled": false
+                }
+              ]
+            },
+            "description": "Exact last name, first-name prefix, borough and year range. Leave `first_name` / `borough` blank to widen."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Show results as a table with a link to the certificate on the Municipal Archives site.",
+                  "const rows = pm.response.json();",
+                  "pm.test(\"Status 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Returned rows\", () => pm.expect(rows).to.be.an(\"array\"));",
+                  "const type = \"death\";",
+                  "const out = rows.map(r => ({...r,",
+                  "  view: type && r.number ? `https://a860-historicalvitalrecords.nyc.gov/browse-all?certificate_type=${type}&number=${r.number}&county=${(r.county||\"\").toLowerCase()}&year=${r.year}` : \"\"",
+                  "}));",
+                  "if (out[0]) { [\"number\",\"year\",\"county\"].forEach(k => out[0][k] && pm.collectionVariables.set(\"last_\"+k, k===\"county\" ? out[0][k].toLowerCase() : out[0][k])); if (type) pm.collectionVariables.set(\"cert_type\", type); }",
+                  "const cols = out.length ? Object.keys(out[0]).filter(k => k !== \"view\") : [];",
+                  "console.log(`${out.length} rows`);",
+                  "pm.visualizer.set(`<style>body{font:13px system-ui}td,th{border:1px solid #ccc;padding:3px 6px}</style>",
+                  "<p><b>{{out.length}}</b> rows (max = <code>$limit</code>). First row's number/year/county saved to <code>last_*</code> variables.</p>",
+                  "<table><tr>{{#each cols}}<th>{{this}}</th>{{/each}}{{#if type}}<th>certificate</th>{{/if}}</tr>",
+                  "{{#each out}}<tr>{{#each ../cols}}<td>{{lookup ../this this}}</td>{{/each}}{{#if ../type}}<td><a href=\"{{view}}\" target=\"_blank\">view</a></td>{{/if}}</tr>{{/each}}</table>`, { out, cols, type });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Sounds-like search (Soundex)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-App-Token",
+                "value": "{{app_token}}",
+                "description": "Optional Socrata app token (raises rate limits). Leave blank or disable.",
+                "disabled": true
+              }
+            ],
+            "url": {
+              "raw": "{{nyc_baseUrl}}/resource/797j-9xvg.json?$where=soundex='{{soundex}}' AND upper(county) like upper('{{borough}}%') AND year between '{{year_from}}' and '{{year_to}}'&$order=last_name, year&$limit={{limit}}",
+              "host": [
+                "{{nyc_baseUrl}}"
+              ],
+              "path": [
+                "resource",
+                "797j-9xvg.json"
+              ],
+              "query": [
+                {
+                  "key": "$where",
+                  "value": "soundex='{{soundex}}' AND upper(county) like upper('{{borough}}%') AND year between '{{year_from}}' and '{{year_to}}'",
+                  "description": "Soundex computed from {{last_name}} by the pre-request script",
+                  "disabled": false
+                },
+                {
+                  "key": "$order",
+                  "value": "last_name, year",
+                  "description": "",
+                  "disabled": false
+                },
+                {
+                  "key": "$limit",
+                  "value": "{{limit}}",
+                  "description": "",
+                  "disabled": false
+                }
+              ]
+            },
+            "description": "Catches spelling variants (Glassheim / Glasheim / Glasshym \u2026). The pre-request script computes `{{soundex}}` from `{{last_name}}`."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Compute American Soundex of {{last_name}} into {{soundex}} (matches the dataset's soundex column).",
+                  "function soundex(s){",
+                  "  s=(s||\"\").toUpperCase().replace(/[^A-Z]/g,\"\"); if(!s) return \"\";",
+                  "  const code={B:1,F:1,P:1,V:1,C:2,G:2,J:2,K:2,Q:2,S:2,X:2,Z:2,D:3,T:3,L:4,M:5,N:5,R:6};",
+                  "  let out=s[0], prev=code[s[0]]||0;",
+                  "  for(let i=1;i<s.length && out.length<4;i++){",
+                  "    const ch=s[i], c=code[ch]||0;",
+                  "    if(c && c!==prev) out+=c;",
+                  "    if(ch!==\"H\" && ch!==\"W\") prev=c;   // H/W don't separate equal codes",
+                  "  }",
+                  "  return (out+\"000\").slice(0,4);",
+                  "}",
+                  "const sx = soundex(pm.collectionVariables.get(\"last_name\"));",
+                  "pm.collectionVariables.set(\"soundex\", sx);",
+                  "console.log(\"Soundex:\", sx);"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Show results as a table with a link to the certificate on the Municipal Archives site.",
+                  "const rows = pm.response.json();",
+                  "pm.test(\"Status 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Returned rows\", () => pm.expect(rows).to.be.an(\"array\"));",
+                  "const type = \"death\";",
+                  "const out = rows.map(r => ({...r,",
+                  "  view: type && r.number ? `https://a860-historicalvitalrecords.nyc.gov/browse-all?certificate_type=${type}&number=${r.number}&county=${(r.county||\"\").toLowerCase()}&year=${r.year}` : \"\"",
+                  "}));",
+                  "if (out[0]) { [\"number\",\"year\",\"county\"].forEach(k => out[0][k] && pm.collectionVariables.set(\"last_\"+k, k===\"county\" ? out[0][k].toLowerCase() : out[0][k])); if (type) pm.collectionVariables.set(\"cert_type\", type); }",
+                  "const cols = out.length ? Object.keys(out[0]).filter(k => k !== \"view\") : [];",
+                  "console.log(`${out.length} rows`);",
+                  "pm.visualizer.set(`<style>body{font:13px system-ui}td,th{border:1px solid #ccc;padding:3px 6px}</style>",
+                  "<p><b>{{out.length}}</b> rows (max = <code>$limit</code>). First row's number/year/county saved to <code>last_*</code> variables.</p>",
+                  "<table><tr>{{#each cols}}<th>{{this}}</th>{{/each}}{{#if type}}<th>certificate</th>{{/if}}</tr>",
+                  "{{#each out}}<tr>{{#each ../cols}}<td>{{lookup ../this this}}</td>{{/each}}{{#if ../type}}<td><a href=\"{{view}}\" target=\"_blank\">view</a></td>{{/if}}</tr>{{/each}}</table>`, { out, cols, type });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Look up by certificate number",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-App-Token",
+                "value": "{{app_token}}",
+                "description": "Optional Socrata app token (raises rate limits). Leave blank or disable.",
+                "disabled": true
+              }
+            ],
+            "url": {
+              "raw": "{{nyc_baseUrl}}/resource/797j-9xvg.json?$where=number='{{cert_number}}' AND year='{{cert_year}}' AND upper(county)=upper('{{borough}}')",
+              "host": [
+                "{{nyc_baseUrl}}"
+              ],
+              "path": [
+                "resource",
+                "797j-9xvg.json"
+              ],
+              "query": [
+                {
+                  "key": "$where",
+                  "value": "number='{{cert_number}}' AND year='{{cert_year}}' AND upper(county)=upper('{{borough}}')",
+                  "description": "Certificate numbers restart each year in each borough, so borough + year are required",
+                  "disabled": false
+                }
+              ]
+            },
+            "description": "Exact certificate lookup."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Show results as a table with a link to the certificate on the Municipal Archives site.",
+                  "const rows = pm.response.json();",
+                  "pm.test(\"Status 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Returned rows\", () => pm.expect(rows).to.be.an(\"array\"));",
+                  "const type = \"death\";",
+                  "const out = rows.map(r => ({...r,",
+                  "  view: type && r.number ? `https://a860-historicalvitalrecords.nyc.gov/browse-all?certificate_type=${type}&number=${r.number}&county=${(r.county||\"\").toLowerCase()}&year=${r.year}` : \"\"",
+                  "}));",
+                  "if (out[0]) { [\"number\",\"year\",\"county\"].forEach(k => out[0][k] && pm.collectionVariables.set(\"last_\"+k, k===\"county\" ? out[0][k].toLowerCase() : out[0][k])); if (type) pm.collectionVariables.set(\"cert_type\", type); }",
+                  "const cols = out.length ? Object.keys(out[0]).filter(k => k !== \"view\") : [];",
+                  "console.log(`${out.length} rows`);",
+                  "pm.visualizer.set(`<style>body{font:13px system-ui}td,th{border:1px solid #ccc;padding:3px 6px}</style>",
+                  "<p><b>{{out.length}}</b> rows (max = <code>$limit</code>). First row's number/year/county saved to <code>last_*</code> variables.</p>",
+                  "<table><tr>{{#each cols}}<th>{{this}}</th>{{/each}}{{#if type}}<th>certificate</th>{{/if}}</tr>",
+                  "{{#each out}}<tr>{{#each ../cols}}<td>{{lookup ../this this}}</td>{{/each}}{{#if ../type}}<td><a href=\"{{view}}\" target=\"_blank\">view</a></td>{{/if}}</tr>{{/each}}</table>`, { out, cols, type });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Full-text search",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-App-Token",
+                "value": "{{app_token}}",
+                "description": "Optional Socrata app token (raises rate limits). Leave blank or disable.",
+                "disabled": true
+              }
+            ],
+            "url": {
+              "raw": "{{nyc_baseUrl}}/resource/797j-9xvg.json?$q={{last_name}}&$limit={{limit}}",
+              "host": [
+                "{{nyc_baseUrl}}"
+              ],
+              "path": [
+                "resource",
+                "797j-9xvg.json"
+              ],
+              "query": [
+                {
+                  "key": "$q",
+                  "value": "{{last_name}}",
+                  "description": "Searches all text columns",
+                  "disabled": false
+                },
+                {
+                  "key": "$limit",
+                  "value": "{{limit}}",
+                  "description": "",
+                  "disabled": false
+                }
+              ]
+            },
+            "description": "Socrata full-text search across all columns."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Show results as a table with a link to the certificate on the Municipal Archives site.",
+                  "const rows = pm.response.json();",
+                  "pm.test(\"Status 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Returned rows\", () => pm.expect(rows).to.be.an(\"array\"));",
+                  "const type = \"death\";",
+                  "const out = rows.map(r => ({...r,",
+                  "  view: type && r.number ? `https://a860-historicalvitalrecords.nyc.gov/browse-all?certificate_type=${type}&number=${r.number}&county=${(r.county||\"\").toLowerCase()}&year=${r.year}` : \"\"",
+                  "}));",
+                  "if (out[0]) { [\"number\",\"year\",\"county\"].forEach(k => out[0][k] && pm.collectionVariables.set(\"last_\"+k, k===\"county\" ? out[0][k].toLowerCase() : out[0][k])); if (type) pm.collectionVariables.set(\"cert_type\", type); }",
+                  "const cols = out.length ? Object.keys(out[0]).filter(k => k !== \"view\") : [];",
+                  "console.log(`${out.length} rows`);",
+                  "pm.visualizer.set(`<style>body{font:13px system-ui}td,th{border:1px solid #ccc;padding:3px 6px}</style>",
+                  "<p><b>{{out.length}}</b> rows (max = <code>$limit</code>). First row's number/year/county saved to <code>last_*</code> variables.</p>",
+                  "<table><tr>{{#each cols}}<th>{{this}}</th>{{/each}}{{#if type}}<th>certificate</th>{{/if}}</tr>",
+                  "{{#each out}}<tr>{{#each ../cols}}<td>{{lookup ../this this}}</td>{{/each}}{{#if ../type}}<td><a href=\"{{view}}\" target=\"_blank\">view</a></td>{{/if}}</tr>{{/each}}</table>`, { out, cols, type });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Count by year for a surname",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-App-Token",
+                "value": "{{app_token}}",
+                "description": "Optional Socrata app token (raises rate limits). Leave blank or disable.",
+                "disabled": true
+              }
+            ],
+            "url": {
+              "raw": "{{nyc_baseUrl}}/resource/797j-9xvg.json?$select=year, count(*) AS records&$where=upper(last_name)=upper('{{last_name}}')&$group=year&$order=year",
+              "host": [
+                "{{nyc_baseUrl}}"
+              ],
+              "path": [
+                "resource",
+                "797j-9xvg.json"
+              ],
+              "query": [
+                {
+                  "key": "$select",
+                  "value": "year, count(*) AS records",
+                  "description": "",
+                  "disabled": false
+                },
+                {
+                  "key": "$where",
+                  "value": "upper(last_name)=upper('{{last_name}}')",
+                  "description": "",
+                  "disabled": false
+                },
+                {
+                  "key": "$group",
+                  "value": "year",
+                  "description": "",
+                  "disabled": false
+                },
+                {
+                  "key": "$order",
+                  "value": "year",
+                  "description": "",
+                  "disabled": false
+                }
+              ]
+            },
+            "description": "Aggregate: how many records per year for the surname."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Show results as a table with a link to the certificate on the Municipal Archives site.",
+                  "const rows = pm.response.json();",
+                  "pm.test(\"Status 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Returned rows\", () => pm.expect(rows).to.be.an(\"array\"));",
+                  "const type = \"\";",
+                  "const out = rows.map(r => ({...r,",
+                  "  view: type && r.number ? `https://a860-historicalvitalrecords.nyc.gov/browse-all?certificate_type=${type}&number=${r.number}&county=${(r.county||\"\").toLowerCase()}&year=${r.year}` : \"\"",
+                  "}));",
+                  "if (out[0]) { [\"number\",\"year\",\"county\"].forEach(k => out[0][k] && pm.collectionVariables.set(\"last_\"+k, k===\"county\" ? out[0][k].toLowerCase() : out[0][k])); if (type) pm.collectionVariables.set(\"cert_type\", type); }",
+                  "const cols = out.length ? Object.keys(out[0]).filter(k => k !== \"view\") : [];",
+                  "console.log(`${out.length} rows`);",
+                  "pm.visualizer.set(`<style>body{font:13px system-ui}td,th{border:1px solid #ccc;padding:3px 6px}</style>",
+                  "<p><b>{{out.length}}</b> rows (max = <code>$limit</code>). First row's number/year/county saved to <code>last_*</code> variables.</p>",
+                  "<table><tr>{{#each cols}}<th>{{this}}</th>{{/each}}{{#if type}}<th>certificate</th>{{/if}}</tr>",
+                  "{{#each out}}<tr>{{#each ../cols}}<td>{{lookup ../this this}}</td>{{/each}}{{#if ../type}}<td><a href=\"{{view}}\" target=\"_blank\">view</a></td>{{/if}}</tr>{{/each}}</table>`, { out, cols, type });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Download CSV (name search)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-App-Token",
+                "value": "{{app_token}}",
+                "description": "Optional Socrata app token (raises rate limits). Leave blank or disable.",
+                "disabled": true
+              }
+            ],
+            "url": {
+              "raw": "{{nyc_baseUrl}}/resource/797j-9xvg.csv?$where=upper(last_name)=upper('{{last_name}}') AND upper(first_name) like upper('{{first_name}}%') AND upper(county) like upper('{{borough}}%') AND year between '{{year_from}}' and '{{year_to}}'&$limit=50000",
+              "host": [
+                "{{nyc_baseUrl}}"
+              ],
+              "path": [
+                "resource",
+                "797j-9xvg.csv"
+              ],
+              "query": [
+                {
+                  "key": "$where",
+                  "value": "upper(last_name)=upper('{{last_name}}') AND upper(first_name) like upper('{{first_name}}%') AND upper(county) like upper('{{borough}}%') AND year between '{{year_from}}' and '{{year_to}}'",
+                  "description": "",
+                  "disabled": false
+                },
+                {
+                  "key": "$limit",
+                  "value": "50000",
+                  "description": "",
+                  "disabled": false
+                }
+              ]
+            },
+            "description": "Same as name search, as CSV. In Postman use *Send and Download*."
+          },
+          "response": []
+        }
+      ],
+      "description": "Index to digitized death certificates. ~3.7M rows. Adds `age` (e.g. `53 y`, `1 m`). Note: county/month are lower-case in this dataset \u2014 the requests use upper() so case doesn't matter.\n\nDataset: https://data.cityofnewyork.us/d/797j-9xvg"
+    },
+    {
+      "name": "Marriages (1866\u20131937) \u00b7 j62e-7maa",
+      "item": [
+        {
+          "name": "Search by name (case-insensitive)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-App-Token",
+                "value": "{{app_token}}",
+                "description": "Optional Socrata app token (raises rate limits). Leave blank or disable.",
+                "disabled": true
+              }
+            ],
+            "url": {
+              "raw": "{{nyc_baseUrl}}/resource/j62e-7maa.json?$where=upper(last_name)=upper('{{last_name}}') AND upper(first_name) like upper('{{first_name}}%') AND upper(county) like upper('{{borough}}%') AND year between '{{year_from}}' and '{{year_to}}'&$order=year, last_name, first_name&$limit={{limit}}",
+              "host": [
+                "{{nyc_baseUrl}}"
+              ],
+              "path": [
+                "resource",
+                "j62e-7maa.json"
+              ],
+              "query": [
+                {
+                  "key": "$where",
+                  "value": "upper(last_name)=upper('{{last_name}}') AND upper(first_name) like upper('{{first_name}}%') AND upper(county) like upper('{{borough}}%') AND year between '{{year_from}}' and '{{year_to}}'",
+                  "description": "Exact surname; first name = prefix; borough optional (blank = all); year range inclusive",
+                  "disabled": false
+                },
+                {
+                  "key": "$order",
+                  "value": "year, last_name, first_name",
+                  "description": "",
+                  "disabled": false
+                },
+                {
+                  "key": "$limit",
+                  "value": "{{limit}}",
+                  "description": "",
+                  "disabled": false
+                }
+              ]
+            },
+            "description": "Exact last name, first-name prefix, borough and year range. Leave `first_name` / `borough` blank to widen."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Show results as a table with a link to the certificate on the Municipal Archives site.",
+                  "const rows = pm.response.json();",
+                  "pm.test(\"Status 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Returned rows\", () => pm.expect(rows).to.be.an(\"array\"));",
+                  "const type = \"marriage\";",
+                  "const out = rows.map(r => ({...r,",
+                  "  view: type && r.number ? `https://a860-historicalvitalrecords.nyc.gov/browse-all?certificate_type=${type}&number=${r.number}&county=${(r.county||\"\").toLowerCase()}&year=${r.year}` : \"\"",
+                  "}));",
+                  "if (out[0]) { [\"number\",\"year\",\"county\"].forEach(k => out[0][k] && pm.collectionVariables.set(\"last_\"+k, k===\"county\" ? out[0][k].toLowerCase() : out[0][k])); if (type) pm.collectionVariables.set(\"cert_type\", type); }",
+                  "const cols = out.length ? Object.keys(out[0]).filter(k => k !== \"view\") : [];",
+                  "console.log(`${out.length} rows`);",
+                  "pm.visualizer.set(`<style>body{font:13px system-ui}td,th{border:1px solid #ccc;padding:3px 6px}</style>",
+                  "<p><b>{{out.length}}</b> rows (max = <code>$limit</code>). First row's number/year/county saved to <code>last_*</code> variables.</p>",
+                  "<table><tr>{{#each cols}}<th>{{this}}</th>{{/each}}{{#if type}}<th>certificate</th>{{/if}}</tr>",
+                  "{{#each out}}<tr>{{#each ../cols}}<td>{{lookup ../this this}}</td>{{/each}}{{#if ../type}}<td><a href=\"{{view}}\" target=\"_blank\">view</a></td>{{/if}}</tr>{{/each}}</table>`, { out, cols, type });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Sounds-like search (Soundex)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-App-Token",
+                "value": "{{app_token}}",
+                "description": "Optional Socrata app token (raises rate limits). Leave blank or disable.",
+                "disabled": true
+              }
+            ],
+            "url": {
+              "raw": "{{nyc_baseUrl}}/resource/j62e-7maa.json?$where=soundex='{{soundex}}' AND upper(county) like upper('{{borough}}%') AND year between '{{year_from}}' and '{{year_to}}'&$order=last_name, year&$limit={{limit}}",
+              "host": [
+                "{{nyc_baseUrl}}"
+              ],
+              "path": [
+                "resource",
+                "j62e-7maa.json"
+              ],
+              "query": [
+                {
+                  "key": "$where",
+                  "value": "soundex='{{soundex}}' AND upper(county) like upper('{{borough}}%') AND year between '{{year_from}}' and '{{year_to}}'",
+                  "description": "Soundex computed from {{last_name}} by the pre-request script",
+                  "disabled": false
+                },
+                {
+                  "key": "$order",
+                  "value": "last_name, year",
+                  "description": "",
+                  "disabled": false
+                },
+                {
+                  "key": "$limit",
+                  "value": "{{limit}}",
+                  "description": "",
+                  "disabled": false
+                }
+              ]
+            },
+            "description": "Catches spelling variants (Glassheim / Glasheim / Glasshym \u2026). The pre-request script computes `{{soundex}}` from `{{last_name}}`."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Compute American Soundex of {{last_name}} into {{soundex}} (matches the dataset's soundex column).",
+                  "function soundex(s){",
+                  "  s=(s||\"\").toUpperCase().replace(/[^A-Z]/g,\"\"); if(!s) return \"\";",
+                  "  const code={B:1,F:1,P:1,V:1,C:2,G:2,J:2,K:2,Q:2,S:2,X:2,Z:2,D:3,T:3,L:4,M:5,N:5,R:6};",
+                  "  let out=s[0], prev=code[s[0]]||0;",
+                  "  for(let i=1;i<s.length && out.length<4;i++){",
+                  "    const ch=s[i], c=code[ch]||0;",
+                  "    if(c && c!==prev) out+=c;",
+                  "    if(ch!==\"H\" && ch!==\"W\") prev=c;   // H/W don't separate equal codes",
+                  "  }",
+                  "  return (out+\"000\").slice(0,4);",
+                  "}",
+                  "const sx = soundex(pm.collectionVariables.get(\"last_name\"));",
+                  "pm.collectionVariables.set(\"soundex\", sx);",
+                  "console.log(\"Soundex:\", sx);"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Show results as a table with a link to the certificate on the Municipal Archives site.",
+                  "const rows = pm.response.json();",
+                  "pm.test(\"Status 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Returned rows\", () => pm.expect(rows).to.be.an(\"array\"));",
+                  "const type = \"marriage\";",
+                  "const out = rows.map(r => ({...r,",
+                  "  view: type && r.number ? `https://a860-historicalvitalrecords.nyc.gov/browse-all?certificate_type=${type}&number=${r.number}&county=${(r.county||\"\").toLowerCase()}&year=${r.year}` : \"\"",
+                  "}));",
+                  "if (out[0]) { [\"number\",\"year\",\"county\"].forEach(k => out[0][k] && pm.collectionVariables.set(\"last_\"+k, k===\"county\" ? out[0][k].toLowerCase() : out[0][k])); if (type) pm.collectionVariables.set(\"cert_type\", type); }",
+                  "const cols = out.length ? Object.keys(out[0]).filter(k => k !== \"view\") : [];",
+                  "console.log(`${out.length} rows`);",
+                  "pm.visualizer.set(`<style>body{font:13px system-ui}td,th{border:1px solid #ccc;padding:3px 6px}</style>",
+                  "<p><b>{{out.length}}</b> rows (max = <code>$limit</code>). First row's number/year/county saved to <code>last_*</code> variables.</p>",
+                  "<table><tr>{{#each cols}}<th>{{this}}</th>{{/each}}{{#if type}}<th>certificate</th>{{/if}}</tr>",
+                  "{{#each out}}<tr>{{#each ../cols}}<td>{{lookup ../this this}}</td>{{/each}}{{#if ../type}}<td><a href=\"{{view}}\" target=\"_blank\">view</a></td>{{/if}}</tr>{{/each}}</table>`, { out, cols, type });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Look up by certificate number",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-App-Token",
+                "value": "{{app_token}}",
+                "description": "Optional Socrata app token (raises rate limits). Leave blank or disable.",
+                "disabled": true
+              }
+            ],
+            "url": {
+              "raw": "{{nyc_baseUrl}}/resource/j62e-7maa.json?$where=number='{{cert_number}}' AND year='{{cert_year}}' AND upper(county)=upper('{{borough}}')",
+              "host": [
+                "{{nyc_baseUrl}}"
+              ],
+              "path": [
+                "resource",
+                "j62e-7maa.json"
+              ],
+              "query": [
+                {
+                  "key": "$where",
+                  "value": "number='{{cert_number}}' AND year='{{cert_year}}' AND upper(county)=upper('{{borough}}')",
+                  "description": "Certificate numbers restart each year in each borough, so borough + year are required",
+                  "disabled": false
+                }
+              ]
+            },
+            "description": "Exact certificate lookup."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Show results as a table with a link to the certificate on the Municipal Archives site.",
+                  "const rows = pm.response.json();",
+                  "pm.test(\"Status 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Returned rows\", () => pm.expect(rows).to.be.an(\"array\"));",
+                  "const type = \"marriage\";",
+                  "const out = rows.map(r => ({...r,",
+                  "  view: type && r.number ? `https://a860-historicalvitalrecords.nyc.gov/browse-all?certificate_type=${type}&number=${r.number}&county=${(r.county||\"\").toLowerCase()}&year=${r.year}` : \"\"",
+                  "}));",
+                  "if (out[0]) { [\"number\",\"year\",\"county\"].forEach(k => out[0][k] && pm.collectionVariables.set(\"last_\"+k, k===\"county\" ? out[0][k].toLowerCase() : out[0][k])); if (type) pm.collectionVariables.set(\"cert_type\", type); }",
+                  "const cols = out.length ? Object.keys(out[0]).filter(k => k !== \"view\") : [];",
+                  "console.log(`${out.length} rows`);",
+                  "pm.visualizer.set(`<style>body{font:13px system-ui}td,th{border:1px solid #ccc;padding:3px 6px}</style>",
+                  "<p><b>{{out.length}}</b> rows (max = <code>$limit</code>). First row's number/year/county saved to <code>last_*</code> variables.</p>",
+                  "<table><tr>{{#each cols}}<th>{{this}}</th>{{/each}}{{#if type}}<th>certificate</th>{{/if}}</tr>",
+                  "{{#each out}}<tr>{{#each ../cols}}<td>{{lookup ../this this}}</td>{{/each}}{{#if ../type}}<td><a href=\"{{view}}\" target=\"_blank\">view</a></td>{{/if}}</tr>{{/each}}</table>`, { out, cols, type });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Full-text search",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-App-Token",
+                "value": "{{app_token}}",
+                "description": "Optional Socrata app token (raises rate limits). Leave blank or disable.",
+                "disabled": true
+              }
+            ],
+            "url": {
+              "raw": "{{nyc_baseUrl}}/resource/j62e-7maa.json?$q={{last_name}}&$limit={{limit}}",
+              "host": [
+                "{{nyc_baseUrl}}"
+              ],
+              "path": [
+                "resource",
+                "j62e-7maa.json"
+              ],
+              "query": [
+                {
+                  "key": "$q",
+                  "value": "{{last_name}}",
+                  "description": "Searches all text columns",
+                  "disabled": false
+                },
+                {
+                  "key": "$limit",
+                  "value": "{{limit}}",
+                  "description": "",
+                  "disabled": false
+                }
+              ]
+            },
+            "description": "Socrata full-text search across all columns."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Show results as a table with a link to the certificate on the Municipal Archives site.",
+                  "const rows = pm.response.json();",
+                  "pm.test(\"Status 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Returned rows\", () => pm.expect(rows).to.be.an(\"array\"));",
+                  "const type = \"marriage\";",
+                  "const out = rows.map(r => ({...r,",
+                  "  view: type && r.number ? `https://a860-historicalvitalrecords.nyc.gov/browse-all?certificate_type=${type}&number=${r.number}&county=${(r.county||\"\").toLowerCase()}&year=${r.year}` : \"\"",
+                  "}));",
+                  "if (out[0]) { [\"number\",\"year\",\"county\"].forEach(k => out[0][k] && pm.collectionVariables.set(\"last_\"+k, k===\"county\" ? out[0][k].toLowerCase() : out[0][k])); if (type) pm.collectionVariables.set(\"cert_type\", type); }",
+                  "const cols = out.length ? Object.keys(out[0]).filter(k => k !== \"view\") : [];",
+                  "console.log(`${out.length} rows`);",
+                  "pm.visualizer.set(`<style>body{font:13px system-ui}td,th{border:1px solid #ccc;padding:3px 6px}</style>",
+                  "<p><b>{{out.length}}</b> rows (max = <code>$limit</code>). First row's number/year/county saved to <code>last_*</code> variables.</p>",
+                  "<table><tr>{{#each cols}}<th>{{this}}</th>{{/each}}{{#if type}}<th>certificate</th>{{/if}}</tr>",
+                  "{{#each out}}<tr>{{#each ../cols}}<td>{{lookup ../this this}}</td>{{/each}}{{#if ../type}}<td><a href=\"{{view}}\" target=\"_blank\">view</a></td>{{/if}}</tr>{{/each}}</table>`, { out, cols, type });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Count by year for a surname",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-App-Token",
+                "value": "{{app_token}}",
+                "description": "Optional Socrata app token (raises rate limits). Leave blank or disable.",
+                "disabled": true
+              }
+            ],
+            "url": {
+              "raw": "{{nyc_baseUrl}}/resource/j62e-7maa.json?$select=year, count(*) AS records&$where=upper(last_name)=upper('{{last_name}}')&$group=year&$order=year",
+              "host": [
+                "{{nyc_baseUrl}}"
+              ],
+              "path": [
+                "resource",
+                "j62e-7maa.json"
+              ],
+              "query": [
+                {
+                  "key": "$select",
+                  "value": "year, count(*) AS records",
+                  "description": "",
+                  "disabled": false
+                },
+                {
+                  "key": "$where",
+                  "value": "upper(last_name)=upper('{{last_name}}')",
+                  "description": "",
+                  "disabled": false
+                },
+                {
+                  "key": "$group",
+                  "value": "year",
+                  "description": "",
+                  "disabled": false
+                },
+                {
+                  "key": "$order",
+                  "value": "year",
+                  "description": "",
+                  "disabled": false
+                }
+              ]
+            },
+            "description": "Aggregate: how many records per year for the surname."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Show results as a table with a link to the certificate on the Municipal Archives site.",
+                  "const rows = pm.response.json();",
+                  "pm.test(\"Status 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Returned rows\", () => pm.expect(rows).to.be.an(\"array\"));",
+                  "const type = \"\";",
+                  "const out = rows.map(r => ({...r,",
+                  "  view: type && r.number ? `https://a860-historicalvitalrecords.nyc.gov/browse-all?certificate_type=${type}&number=${r.number}&county=${(r.county||\"\").toLowerCase()}&year=${r.year}` : \"\"",
+                  "}));",
+                  "if (out[0]) { [\"number\",\"year\",\"county\"].forEach(k => out[0][k] && pm.collectionVariables.set(\"last_\"+k, k===\"county\" ? out[0][k].toLowerCase() : out[0][k])); if (type) pm.collectionVariables.set(\"cert_type\", type); }",
+                  "const cols = out.length ? Object.keys(out[0]).filter(k => k !== \"view\") : [];",
+                  "console.log(`${out.length} rows`);",
+                  "pm.visualizer.set(`<style>body{font:13px system-ui}td,th{border:1px solid #ccc;padding:3px 6px}</style>",
+                  "<p><b>{{out.length}}</b> rows (max = <code>$limit</code>). First row's number/year/county saved to <code>last_*</code> variables.</p>",
+                  "<table><tr>{{#each cols}}<th>{{this}}</th>{{/each}}{{#if type}}<th>certificate</th>{{/if}}</tr>",
+                  "{{#each out}}<tr>{{#each ../cols}}<td>{{lookup ../this this}}</td>{{/each}}{{#if ../type}}<td><a href=\"{{view}}\" target=\"_blank\">view</a></td>{{/if}}</tr>{{/each}}</table>`, { out, cols, type });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Download CSV (name search)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-App-Token",
+                "value": "{{app_token}}",
+                "description": "Optional Socrata app token (raises rate limits). Leave blank or disable.",
+                "disabled": true
+              }
+            ],
+            "url": {
+              "raw": "{{nyc_baseUrl}}/resource/j62e-7maa.csv?$where=upper(last_name)=upper('{{last_name}}') AND upper(first_name) like upper('{{first_name}}%') AND upper(county) like upper('{{borough}}%') AND year between '{{year_from}}' and '{{year_to}}'&$limit=50000",
+              "host": [
+                "{{nyc_baseUrl}}"
+              ],
+              "path": [
+                "resource",
+                "j62e-7maa.csv"
+              ],
+              "query": [
+                {
+                  "key": "$where",
+                  "value": "upper(last_name)=upper('{{last_name}}') AND upper(first_name) like upper('{{first_name}}%') AND upper(county) like upper('{{borough}}%') AND year between '{{year_from}}' and '{{year_to}}'",
+                  "description": "",
+                  "disabled": false
+                },
+                {
+                  "key": "$limit",
+                  "value": "50000",
+                  "description": "",
+                  "disabled": false
+                }
+              ]
+            },
+            "description": "Same as name search, as CSV. In Postman use *Send and Download*."
+          },
+          "response": []
+        },
+        {
+          "name": "Find both spouses on a certificate",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-App-Token",
+                "value": "{{app_token}}",
+                "description": "Optional Socrata app token (raises rate limits). Leave blank or disable.",
+                "disabled": true
+              }
+            ],
+            "url": {
+              "raw": "{{nyc_baseUrl}}/resource/j62e-7maa.json?$where=number='{{last_number}}' AND year='{{last_year}}' AND upper(county)=upper('{{last_county}}')",
+              "host": [
+                "{{nyc_baseUrl}}"
+              ],
+              "path": [
+                "resource",
+                "j62e-7maa.json"
+              ],
+              "query": [
+                {
+                  "key": "$where",
+                  "value": "number='{{last_number}}' AND year='{{last_year}}' AND upper(county)=upper('{{last_county}}')",
+                  "description": "Filled automatically from the first row of the previous marriage search",
+                  "disabled": false
+                }
+              ]
+            },
+            "description": "The marriage index has one row per person. Rows sharing borough + year + certificate number are the two spouses. Run a marriage name search first; it saves `last_number`, `last_year`, `last_county`."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Show results as a table with a link to the certificate on the Municipal Archives site.",
+                  "const rows = pm.response.json();",
+                  "pm.test(\"Status 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Returned rows\", () => pm.expect(rows).to.be.an(\"array\"));",
+                  "const type = \"marriage\";",
+                  "const out = rows.map(r => ({...r,",
+                  "  view: type && r.number ? `https://a860-historicalvitalrecords.nyc.gov/browse-all?certificate_type=${type}&number=${r.number}&county=${(r.county||\"\").toLowerCase()}&year=${r.year}` : \"\"",
+                  "}));",
+                  "if (out[0]) { [\"number\",\"year\",\"county\"].forEach(k => out[0][k] && pm.collectionVariables.set(\"last_\"+k, k===\"county\" ? out[0][k].toLowerCase() : out[0][k])); if (type) pm.collectionVariables.set(\"cert_type\", type); }",
+                  "const cols = out.length ? Object.keys(out[0]).filter(k => k !== \"view\") : [];",
+                  "console.log(`${out.length} rows`);",
+                  "pm.visualizer.set(`<style>body{font:13px system-ui}td,th{border:1px solid #ccc;padding:3px 6px}</style>",
+                  "<p><b>{{out.length}}</b> rows (max = <code>$limit</code>). First row's number/year/county saved to <code>last_*</code> variables.</p>",
+                  "<table><tr>{{#each cols}}<th>{{this}}</th>{{/each}}{{#if type}}<th>certificate</th>{{/if}}</tr>",
+                  "{{#each out}}<tr>{{#each ../cols}}<td>{{lookup ../this this}}</td>{{/each}}{{#if ../type}}<td><a href=\"{{view}}\" target=\"_blank\">view</a></td>{{/if}}</tr>{{/each}}</table>`, { out, cols, type });"
+                ]
+              }
+            }
+          ]
+        }
+      ],
+      "description": "Index to digitized marriage certificates. ~5.3M rows (one row per spouse).\n\nDataset: https://data.cityofnewyork.us/d/j62e-7maa"
+    },
+    {
+      "name": "Marriage Licenses (1908\u20131949) \u00b7 d8dr-nyhw",
+      "item": [
+        {
+          "name": "Look up license",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-App-Token",
+                "value": "{{app_token}}",
+                "description": "Optional Socrata app token (raises rate limits). Leave blank or disable.",
+                "disabled": true
+              }
+            ],
+            "url": {
+              "raw": "{{nyc_baseUrl}}/resource/d8dr-nyhw.json?$where=license_number='{{cert_number}}' AND license_year='{{cert_year}}' AND upper(county)=upper('{{borough}}')",
+              "host": [
+                "{{nyc_baseUrl}}"
+              ],
+              "path": [
+                "resource",
+                "d8dr-nyhw.json"
+              ],
+              "query": [
+                {
+                  "key": "$where",
+                  "value": "license_number='{{cert_number}}' AND license_year='{{cert_year}}' AND upper(county)=upper('{{borough}}')",
+                  "description": "",
+                  "disabled": false
+                }
+              ]
+            },
+            "description": "Licenses are indexed by number/year/borough only (no names)."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Show results as a table with a link to the certificate on the Municipal Archives site.",
+                  "const rows = pm.response.json();",
+                  "pm.test(\"Status 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Returned rows\", () => pm.expect(rows).to.be.an(\"array\"));",
+                  "const type = \"\";",
+                  "const out = rows.map(r => ({...r,",
+                  "  view: type && r.number ? `https://a860-historicalvitalrecords.nyc.gov/browse-all?certificate_type=${type}&number=${r.number}&county=${(r.county||\"\").toLowerCase()}&year=${r.year}` : \"\"",
+                  "}));",
+                  "if (out[0]) { [\"number\",\"year\",\"county\"].forEach(k => out[0][k] && pm.collectionVariables.set(\"last_\"+k, k===\"county\" ? out[0][k].toLowerCase() : out[0][k])); if (type) pm.collectionVariables.set(\"cert_type\", type); }",
+                  "const cols = out.length ? Object.keys(out[0]).filter(k => k !== \"view\") : [];",
+                  "console.log(`${out.length} rows`);",
+                  "pm.visualizer.set(`<style>body{font:13px system-ui}td,th{border:1px solid #ccc;padding:3px 6px}</style>",
+                  "<p><b>{{out.length}}</b> rows (max = <code>$limit</code>). First row's number/year/county saved to <code>last_*</code> variables.</p>",
+                  "<table><tr>{{#each cols}}<th>{{this}}</th>{{/each}}{{#if type}}<th>certificate</th>{{/if}}</tr>",
+                  "{{#each out}}<tr>{{#each ../cols}}<td>{{lookup ../this this}}</td>{{/each}}{{#if ../type}}<td><a href=\"{{view}}\" target=\"_blank\">view</a></td>{{/if}}</tr>{{/each}}</table>`, { out, cols, type });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Count licenses by year & borough",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-App-Token",
+                "value": "{{app_token}}",
+                "description": "Optional Socrata app token (raises rate limits). Leave blank or disable.",
+                "disabled": true
+              }
+            ],
+            "url": {
+              "raw": "{{nyc_baseUrl}}/resource/d8dr-nyhw.json?$select=license_year, county, count(*) AS licenses&$group=license_year, county&$order=license_year, county&$limit=500",
+              "host": [
+                "{{nyc_baseUrl}}"
+              ],
+              "path": [
+                "resource",
+                "d8dr-nyhw.json"
+              ],
+              "query": [
+                {
+                  "key": "$select",
+                  "value": "license_year, county, count(*) AS licenses",
+                  "description": "",
+                  "disabled": false
+                },
+                {
+                  "key": "$group",
+                  "value": "license_year, county",
+                  "description": "",
+                  "disabled": false
+                },
+                {
+                  "key": "$order",
+                  "value": "license_year, county",
+                  "description": "",
+                  "disabled": false
+                },
+                {
+                  "key": "$limit",
+                  "value": "500",
+                  "description": "",
+                  "disabled": false
+                }
+              ]
+            },
+            "description": ""
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Show results as a table with a link to the certificate on the Municipal Archives site.",
+                  "const rows = pm.response.json();",
+                  "pm.test(\"Status 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Returned rows\", () => pm.expect(rows).to.be.an(\"array\"));",
+                  "const type = \"\";",
+                  "const out = rows.map(r => ({...r,",
+                  "  view: type && r.number ? `https://a860-historicalvitalrecords.nyc.gov/browse-all?certificate_type=${type}&number=${r.number}&county=${(r.county||\"\").toLowerCase()}&year=${r.year}` : \"\"",
+                  "}));",
+                  "if (out[0]) { [\"number\",\"year\",\"county\"].forEach(k => out[0][k] && pm.collectionVariables.set(\"last_\"+k, k===\"county\" ? out[0][k].toLowerCase() : out[0][k])); if (type) pm.collectionVariables.set(\"cert_type\", type); }",
+                  "const cols = out.length ? Object.keys(out[0]).filter(k => k !== \"view\") : [];",
+                  "console.log(`${out.length} rows`);",
+                  "pm.visualizer.set(`<style>body{font:13px system-ui}td,th{border:1px solid #ccc;padding:3px 6px}</style>",
+                  "<p><b>{{out.length}}</b> rows (max = <code>$limit</code>). First row's number/year/county saved to <code>last_*</code> variables.</p>",
+                  "<table><tr>{{#each cols}}<th>{{this}}</th>{{/each}}{{#if type}}<th>certificate</th>{{/if}}</tr>",
+                  "{{#each out}}<tr>{{#each ../cols}}<td>{{lookup ../this this}}</td>{{/each}}{{#if ../type}}<td><a href=\"{{view}}\" target=\"_blank\">view</a></td>{{/if}}</tr>{{/each}}</table>`, { out, cols, type });"
+                ]
+              }
+            }
+          ]
+        }
+      ],
+      "description": "Index to digitized marriage licenses (no names). ~1.27M rows.\n\nDataset: https://data.cityofnewyork.us/d/d8dr-nyhw"
+    },
+    {
+      "name": "Certificate image & metadata",
+      "item": [
+        {
+          "name": "Open certificate on Municipal Archives site",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "https://a860-historicalvitalrecords.nyc.gov/browse-all?certificate_type={{cert_type}}&number={{last_number}}&county={{last_county}}&year={{last_year}}",
+              "host": [
+                "https://a860-historicalvitalrecords.nyc.gov"
+              ],
+              "path": [
+                "browse-all"
+              ],
+              "query": [
+                {
+                  "key": "certificate_type",
+                  "value": "{{cert_type}}",
+                  "description": "birth | death | marriage",
+                  "disabled": false
+                },
+                {
+                  "key": "number",
+                  "value": "{{last_number}}",
+                  "description": "",
+                  "disabled": false
+                },
+                {
+                  "key": "county",
+                  "value": "{{last_county}}",
+                  "description": "lower-case borough",
+                  "disabled": false
+                },
+                {
+                  "key": "year",
+                  "value": "{{last_year}}",
+                  "description": "",
+                  "disabled": false
+                }
+              ]
+            },
+            "description": "HTML page that lists the matching certificate with a link to the scanned image. Open the URL in a browser."
+          },
+          "response": []
+        },
+        {
+          "name": "Dataset metadata (columns, descriptions, update date)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-App-Token",
+                "value": "{{app_token}}",
+                "description": "Optional Socrata app token (raises rate limits). Leave blank or disable.",
+                "disabled": true
+              }
+            ],
+            "url": {
+              "raw": "{{nyc_baseUrl}}/api/views/{{dataset_id}}.json",
+              "host": [
+                "{{nyc_baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "views",
+                "{{dataset_id}}.json"
+              ],
+              "query": []
+            },
+            "description": "Socrata metadata for any dataset id."
+          },
+          "response": []
+        }
+      ],
+      "description": "Helpers."
+    }
+  ],
+  "variable": [
+    {
+      "key": "nyc_baseUrl",
+      "value": "https://data.cityofnewyork.us"
+    },
+    {
+      "key": "app_token",
+      "value": ""
+    },
+    {
+      "key": "last_name",
+      "value": "Glassheim"
+    },
+    {
+      "key": "first_name",
+      "value": ""
+    },
+    {
+      "key": "borough",
+      "value": "MANHATTAN"
+    },
+    {
+      "key": "year_from",
+      "value": "1855"
+    },
+    {
+      "key": "year_to",
+      "value": "1949"
+    },
+    {
+      "key": "limit",
+      "value": "200"
+    },
+    {
+      "key": "soundex",
+      "value": ""
+    },
+    {
+      "key": "cert_number",
+      "value": "7505"
+    },
+    {
+      "key": "cert_year",
+      "value": "1894"
+    },
+    {
+      "key": "cert_type",
+      "value": "birth"
+    },
+    {
+      "key": "last_number",
+      "value": ""
+    },
+    {
+      "key": "last_year",
+      "value": ""
+    },
+    {
+      "key": "last_county",
+      "value": ""
+    },
+    {
+      "key": "dataset_id",
+      "value": "5gq7-rgmv"
+    }
+  ]
+}
